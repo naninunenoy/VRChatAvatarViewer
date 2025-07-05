@@ -17,6 +17,10 @@ namespace com.naninunenoy.avatar_viewer.Editor
         bool _isDraggingPan;
         Vector2 _lastMousePosition;
         
+        // UI用のフィールド
+        GameObject _selectedPrefab;
+        AnimationClip _selectedAnimationClip;
+        
         [MenuItem("Window/AvatarViewer")]
         public static void Open()
         {
@@ -34,6 +38,7 @@ namespace com.naninunenoy.avatar_viewer.Editor
             // 前回状態の復元
             if (s_lastPrefab != null)
             {
+                _selectedPrefab = s_lastPrefab;
                 SetPrefab(s_lastPrefab);
             }
             // カメラ状態の復元
@@ -47,9 +52,60 @@ namespace com.naninunenoy.avatar_viewer.Editor
         /// </summary>
         void OnGUI()
         {
+            DrawUI();
             HandleDragAndDrop();
             DrawPreview();
             HandleMouseInput();
+        }
+        
+        /// <summary>
+        /// UI要素の描画
+        /// </summary>
+        void DrawUI()
+        {
+            EditorGUILayout.BeginVertical("box");
+            
+            // Prefab選択
+            EditorGUI.BeginChangeCheck();
+            var newPrefab = (GameObject)EditorGUILayout.ObjectField(
+                "Prefab", 
+                _selectedPrefab, 
+                typeof(GameObject), 
+                false
+            );
+            if (EditorGUI.EndChangeCheck() && newPrefab != _selectedPrefab)
+            {
+                _selectedPrefab = newPrefab;
+                if (newPrefab != null)
+                {
+                    SetPrefab(newPrefab);
+                    s_lastPrefab = newPrefab;
+                }
+            }
+            
+            // AnimationClip選択
+            EditorGUI.BeginChangeCheck();
+            var newAnimationClip = (AnimationClip)EditorGUILayout.ObjectField(
+                "Animation Clip", 
+                _selectedAnimationClip, 
+                typeof(AnimationClip), 
+                false
+            );
+            if (EditorGUI.EndChangeCheck() && newAnimationClip != _selectedAnimationClip)
+            {
+                _selectedAnimationClip = newAnimationClip;
+                if (newAnimationClip != null)
+                {
+                    SetAnimationClip(newAnimationClip);
+                }
+                else
+                {
+                    // アニメーションクリップがnullの場合、アニメーションを停止
+                    _renderer?.StopAnimation();
+                }
+            }
+            
+            EditorGUILayout.EndVertical();
         }
         
         /// <summary>
@@ -89,12 +145,14 @@ namespace com.naninunenoy.avatar_viewer.Editor
                         {
                             if (draggedObject is GameObject prefab)
                             {
+                                _selectedPrefab = prefab;
                                 SetPrefab(prefab);
                                 s_lastPrefab = prefab;
                                 break;
                             }
                             else if (draggedObject is AnimationClip animationClip)
                             {
+                                _selectedAnimationClip = animationClip;
                                 SetAnimationClip(animationClip);
                                 break;
                             }
