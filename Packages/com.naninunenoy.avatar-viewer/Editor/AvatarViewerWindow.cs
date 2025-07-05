@@ -12,9 +12,12 @@ namespace com.naninunenoy.avatarviewer.Editor
         private static PreviewRenderUtility s_previewRenderUtility;
         private GameObject _currentPrefab;
         private GameObject _previewInstance;
-        private Vector2 _cameraRotation = new Vector2(0.0F, 0.0F);
+        private Vector3 _cameraTarget = Vector3.zero;
+        private Vector2 _cameraOrbitRotation = new Vector2(0.0F, 0.0F);
+        private Vector3 _cameraPanOffset = Vector3.zero;
         private float _cameraDistance = 3.0F;
-        private bool _isDragging;
+        private bool _isDraggingOrbit;
+        private bool _isDraggingPan;
         private Vector2 _lastMousePosition;
 
         /// <summary>
@@ -76,7 +79,7 @@ namespace com.naninunenoy.avatarviewer.Editor
         {
             var evt = Event.current;
             var dropArea = GUILayoutUtility.GetRect(0.0F, 50.0F, GUILayout.ExpandWidth(true));
-            
+
             GUI.Box(dropArea, "Prefabをここにドラッグ&ドロップしてください");
             
             switch (evt.type)
@@ -138,44 +141,124 @@ namespace com.naninunenoy.avatarviewer.Editor
             switch (evt.type)
             {
                 case EventType.MouseDown:
-                    if (evt.button == 0)
-                    {
-                        _isDragging = true;
-                        _lastMousePosition = evt.mousePosition;
-                        GUIUtility.hotControl = controlID;
-                        evt.Use();
-                    }
+                    HandleMouseDown(evt, controlID);
                     break;
                     
                 case EventType.MouseDrag:
-                    if (_isDragging && GUIUtility.hotControl == controlID)
-                    {
-                        var delta = evt.mousePosition - _lastMousePosition;
-                        _cameraRotation.x += delta.y * 0.5F;
-                        _cameraRotation.y += delta.x * 0.5F;
-                        _cameraRotation.x = Mathf.Clamp(_cameraRotation.x, -90.0F, 90.0F);
-                        _lastMousePosition = evt.mousePosition;
-                        Repaint();
-                        evt.Use();
-                    }
+                    HandleMouseDrag(evt, controlID);
                     break;
                     
                 case EventType.MouseUp:
-                    if (evt.button == 0 && _isDragging)
-                    {
-                        _isDragging = false;
-                        GUIUtility.hotControl = 0;
-                        evt.Use();
-                    }
+                    HandleMouseUp(evt, controlID);
                     break;
                     
                 case EventType.ScrollWheel:
-                    _cameraDistance += evt.delta.y * 0.1F;
-                    _cameraDistance = Mathf.Clamp(_cameraDistance, 0.5F, 10.0F);
-                    Repaint();
-                    evt.Use();
+                    HandleScrollWheel(evt);
                     break;
             }
+        }
+
+        /// <summary>
+        /// マウスダウン処理
+        /// </summary>
+        /// <param name="evt">イベント</param>
+        /// <param name="controlID">コントロールID</param>
+        void HandleMouseDown(Event evt, int controlID)
+        {
+            if (evt.button == 0 || evt.button == 2) // 左ボタンまたは中央ボタン
+            {
+                _isDraggingPan = true;
+                _lastMousePosition = evt.mousePosition;
+                GUIUtility.hotControl = controlID;
+                evt.Use();
+            }
+            else if (evt.button == 1) // 右ボタン
+            {
+                _isDraggingOrbit = true;
+                _lastMousePosition = evt.mousePosition;
+                GUIUtility.hotControl = controlID;
+                evt.Use();
+            }
+        }
+
+        /// <summary>
+        /// マウスドラッグ処理
+        /// </summary>
+        /// <param name="evt">イベント</param>
+        /// <param name="controlID">コントロールID</param>
+        void HandleMouseDrag(Event evt, int controlID)
+        {
+            if (GUIUtility.hotControl != controlID)
+                return;
+                
+            var delta = evt.mousePosition - _lastMousePosition;
+            
+            if (_isDraggingPan)
+            {
+                HandlePanMovement(delta);
+            }
+            else if (_isDraggingOrbit)
+            {
+                HandleOrbitRotation(delta);
+            }
+            
+            _lastMousePosition = evt.mousePosition;
+            Repaint();
+            evt.Use();
+        }
+
+        /// <summary>
+        /// マウスアップ処理
+        /// </summary>
+        /// <param name="evt">イベント</param>
+        /// <param name="controlID">コントロールID</param>
+        void HandleMouseUp(Event evt, int controlID)
+        {
+            if (GUIUtility.hotControl == controlID)
+            {
+                _isDraggingPan = false;
+                _isDraggingOrbit = false;
+                GUIUtility.hotControl = 0;
+                evt.Use();
+            }
+        }
+
+        /// <summary>
+        /// スクロールホイール処理
+        /// </summary>
+        /// <param name="evt">イベント</param>
+        void HandleScrollWheel(Event evt)
+        {
+            _cameraDistance += evt.delta.y * 0.1F;
+            _cameraDistance = Mathf.Clamp(_cameraDistance, 0.5F, 10.0F);
+            Repaint();
+            evt.Use();
+        }
+
+        /// <summary>
+        /// オービット回転処理
+        /// </summary>
+        /// <param name="delta">マウス移動量</param>
+        void HandleOrbitRotation(Vector2 delta)
+        {
+            _cameraOrbitRotation.x += delta.y * 0.5F;
+            _cameraOrbitRotation.y += delta.x * 0.5F;
+            _cameraOrbitRotation.x = Mathf.Clamp(_cameraOrbitRotation.x, -90.0F, 90.0F);
+        }
+
+        /// <summary>
+        /// パン移動処理
+        /// </summary>
+        /// <param name="delta">マウス移動量</param>
+        void HandlePanMovement(Vector2 delta)
+        {
+            var camera = s_previewRenderUtility.camera;
+            var right = camera.transform.right;
+            var up = camera.transform.up;
+            
+            var panSpeed = _cameraDistance * 0.001F;
+            _cameraPanOffset -= right * delta.x * panSpeed;
+            _cameraPanOffset += up * delta.y * panSpeed;
         }
 
         /// <summary>
@@ -183,10 +266,12 @@ namespace com.naninunenoy.avatarviewer.Editor
         /// </summary>
         void UpdateCameraPosition()
         {
-            var cameraRot = Quaternion.Euler(_cameraRotation.x, _cameraRotation.y, 0.0F);
-            var cameraPos = cameraRot * Vector3.back * _cameraDistance;
-            s_previewRenderUtility.camera.transform.position = cameraPos;
-            s_previewRenderUtility.camera.transform.rotation = cameraRot;
+            var rotation = Quaternion.Euler(_cameraOrbitRotation.x, _cameraOrbitRotation.y, 0.0F);
+            var targetPosition = _cameraTarget + _cameraPanOffset;
+            var cameraPosition = targetPosition + rotation * Vector3.back * _cameraDistance;
+            
+            s_previewRenderUtility.camera.transform.position = cameraPosition;
+            s_previewRenderUtility.camera.transform.rotation = rotation;
         }
 
         /// <summary>
