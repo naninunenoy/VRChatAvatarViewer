@@ -171,22 +171,13 @@ namespace com.naninunenoy.avatar_viewer.Editor
                 deltaTime = 0.016f; // 約60FPS相当
             }
             
-            var oldTime = _currentTime;
-            
             // 時間を進める
             _currentTime += deltaTime;
             
             // ループ処理
             if (_currentTime > _currentClip.length)
             {
-                UnityEngine.Debug.Log($"Loop detected: {oldTime:F3} -> {_currentTime:F3}, ClipLength: {_currentClip.length:F3}");
-                _currentTime = _currentTime % _currentClip.length;
-            }
-            
-            // デバッグ情報
-            if (UnityEngine.Time.frameCount % 60 == 0) // 60フレームごと
-            {
-                UnityEngine.Debug.Log($"Animation Time: {_currentTime:F2}/{_currentClip.length:F2}, DeltaTime: {deltaTime:F4}, ClipName: {_currentClip.name}");
+                _currentTime %= _currentClip.length;
             }
             
             // Playableの時間を設定
