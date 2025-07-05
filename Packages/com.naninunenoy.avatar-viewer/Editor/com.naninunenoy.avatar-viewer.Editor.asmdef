@@ -1,0 +1,23 @@
+{
+    "name": "com.naninunenoy.avatar-viewer.Editor",
+    "rootNamespace": "com.naninunenoy.avatar-viewer.Editor",
+    "references": [
+        "com.naninunenoy.avatar-viewer.Runtime",
+        "VRC.SDKBase",
+        "VRC.SDK3A"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "VRCSDKBase.dll",
+        "VRCSDK3A.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
