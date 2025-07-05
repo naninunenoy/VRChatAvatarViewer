@@ -8,7 +8,7 @@ namespace com.naninunenoy.avatar_viewer.Editor
     public class AvatarPreviewCamera
     {
         const float DefaultCameraDistance = 3.0F;
-        const float MinCameraDistance = 0.5F;
+        const float MinCameraDistance = 0.05F;
         const float MaxCameraDistance = 10.0F;
         const float OrbitSensitivity = 0.5F;
         const float PanSensitivity = 0.001F;
