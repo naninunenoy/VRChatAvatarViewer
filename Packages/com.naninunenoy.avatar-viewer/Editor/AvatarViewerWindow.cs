@@ -1,6 +1,4 @@
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 
@@ -98,7 +96,7 @@ namespace com.naninunenoy.avatarviewer.Editor
                         {
                             if (draggedObject is GameObject prefab)
                             {
-                                SetPrefabAsync(prefab, CancellationToken.None);
+                                SetPrefab(prefab);
                                 break;
                             }
                         }
@@ -123,21 +121,9 @@ namespace com.naninunenoy.avatarviewer.Editor
             if (Event.current.type == EventType.Repaint)
             {
                 if (s_previewRenderUtility == null) return;
-                // カメラの位置を更新
-                var cameraRot = Quaternion.Euler(_cameraRotation.x, _cameraRotation.y, 0.0F);
-                var cameraPos = cameraRot * Vector3.back * _cameraDistance;
-                s_previewRenderUtility.camera.transform.position = cameraPos;
-                s_previewRenderUtility.camera.transform.rotation = cameraRot;
-                // プレビューの描画
-                s_previewRenderUtility.BeginPreview(rect, GUIStyle.none);
-                s_previewRenderUtility.DrawMesh(
-                    _previewInstance.GetComponent<MeshFilter>()?.sharedMesh,
-                    Matrix4x4.identity,
-                    _previewInstance.GetComponent<MeshRenderer>()?.sharedMaterial,
-                    0
-                );
-                s_previewRenderUtility.Render();
-                s_previewRenderUtility.EndAndDrawPreview(rect);
+                
+                UpdateCameraPosition();
+                RenderPreview(rect);
             }
         }
 
@@ -193,34 +179,75 @@ namespace com.naninunenoy.avatarviewer.Editor
         }
 
         /// <summary>
+        /// カメラの位置を更新
+        /// </summary>
+        void UpdateCameraPosition()
+        {
+            var cameraRot = Quaternion.Euler(_cameraRotation.x, _cameraRotation.y, 0.0F);
+            var cameraPos = cameraRot * Vector3.back * _cameraDistance;
+            s_previewRenderUtility.camera.transform.position = cameraPos;
+            s_previewRenderUtility.camera.transform.rotation = cameraRot;
+        }
+
+        /// <summary>
+        /// プレビューのレンダリング
+        /// </summary>
+        /// <param name="rect">描画エリア</param>
+        void RenderPreview(Rect rect)
+        {
+            s_previewRenderUtility.BeginPreview(rect, GUIStyle.none);
+            s_previewRenderUtility.Render();
+            s_previewRenderUtility.EndAndDrawPreview(rect);
+        }
+
+        /// <summary>
+        /// GameObjectのバウンディングボックスを計算
+        /// </summary>
+        /// <param name="gameObject">計算対象のGameObject</param>
+        /// <returns>バウンディングボックス</returns>
+        Bounds CalculateBounds(GameObject gameObject)
+        {
+            var bounds = new Bounds();
+            var renderers = gameObject.GetComponentsInChildren<Renderer>();
+            
+            if (renderers.Length == 0)
+                return bounds;
+            
+            bounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+            {
+                bounds.Encapsulate(renderers[i].bounds);
+            }
+            
+            return bounds;
+        }
+
+        /// <summary>
         /// Prefabを設定する
         /// </summary>
         /// <param name="prefab">設定するPrefab</param>
-        /// <param name="cancellationToken">キャンセレーショントークン</param>
-        async Task SetPrefabAsync(GameObject prefab, CancellationToken cancellationToken)
+        void SetPrefab(GameObject prefab)
         {
-            try
+            if (_previewInstance != null)
             {
-                if (_previewInstance != null)
-                {
-                    DestroyImmediate(_previewInstance);
-                }
-                
-                _currentPrefab = prefab;
-                _previewInstance = Instantiate(prefab);
-                _previewInstance.hideFlags = HideFlags.HideAndDontSave;
-                
-                await Task.Yield();
-                
-                if (cancellationToken.IsCancellationRequested)
-                    return;
-                
-                Repaint();
+                DestroyImmediate(_previewInstance);
             }
-            catch (Exception ex)
+                
+            _currentPrefab = prefab;
+            _previewInstance = Instantiate(prefab);
+            _previewInstance.hideFlags = HideFlags.HideAndDontSave;
+                
+            // AddSingleGOでプレビューシーンに追加
+            s_previewRenderUtility.AddSingleGO(_previewInstance);
+                
+            // バウンディングボックスを計算してカメラ距離を調整
+            var bounds = CalculateBounds(_previewInstance);
+            if (bounds.size.magnitude > 0.0F)
             {
-                Debug.LogError($"Prefabの設定中にエラーが発生しました: {ex.Message}");
+                _cameraDistance = Mathf.Max(bounds.size.magnitude * 1.5F, 1.0F);
             }
+                
+            Repaint();
         }
     }
 }
