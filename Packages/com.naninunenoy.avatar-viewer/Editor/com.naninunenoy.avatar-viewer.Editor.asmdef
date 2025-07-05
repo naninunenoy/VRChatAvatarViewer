@@ -1,6 +1,6 @@
 {
     "name": "com.naninunenoy.avatar-viewer.Editor",
-    "rootNamespace": "com.naninunenoy.avatar-viewer.Editor",
+    "rootNamespace": "com.naninunenoy.avatar_viewer.Editor",
     "references": [
         "com.naninunenoy.avatar-viewer.Runtime",
         "VRC.SDKBase",

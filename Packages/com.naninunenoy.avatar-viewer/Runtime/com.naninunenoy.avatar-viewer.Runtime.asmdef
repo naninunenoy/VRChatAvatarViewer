@@ -1,6 +1,6 @@
 {
     "name": "com.naninunenoy.avatar-viewer.Runtime",
-    "rootNamespace": "com.naninunenoy.avatar-viewer",
+    "rootNamespace": "com.naninunenoy.avatar_viewer",
     "references": [
         "VRC.SDKBase",
         "VRC.SDK3A"
