@@ -27,10 +27,6 @@ namespace com.naninunenoy.avatar_viewer.Editor
             _camera ??= new AvatarPreviewCamera();
             _renderer ??= new AvatarPreviewRenderer();
             _renderer?.Initialize();
-            
-            // アニメーション更新のためのUpdateイベント登録
-            EditorApplication.update -= OnEditorUpdate; // 重複登録を避ける
-            EditorApplication.update += OnEditorUpdate;
         }
 
         /// <summary>
@@ -41,15 +37,6 @@ namespace com.naninunenoy.avatar_viewer.Editor
             HandleDragAndDrop();
             DrawPreview();
             HandleMouseInput();
-        }
-
-        /// <summary>
-        /// ウィンドウが閉じられる際の処理
-        /// </summary>
-        void OnDisable()
-        {
-            // Updateイベントの登録解除
-            EditorApplication.update -= OnEditorUpdate;
         }
         
         /// <summary>
@@ -110,12 +97,9 @@ namespace com.naninunenoy.avatar_viewer.Editor
             
             var rect = GUILayoutUtility.GetRect(300.0F, 300.0F, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
             
-            if (Event.current.type == EventType.Repaint)
-            {
-                var cameraPosition = _camera.CalculatePosition();
-                var cameraRotation = _camera.CalculateRotation();
-                _renderer.RenderPreview(rect, cameraPosition, cameraRotation);
-            }
+            var cameraPosition = _camera.CalculatePosition();
+            var cameraRotation = _camera.CalculateRotation();
+            _renderer.RenderPreview(rect, cameraPosition, cameraRotation);
         }
 
         /// <summary>
@@ -242,17 +226,6 @@ namespace com.naninunenoy.avatar_viewer.Editor
             Repaint();
         }
         
-        /// <summary>
-        /// EditorのUpdate処理
-        /// </summary>
-        void OnEditorUpdate()
-        {
-            // アニメーションが再生中の場合は再描画
-            if (_renderer?.AnimationController != null && _renderer.AnimationController.IsPlaying)
-            {
-                Repaint();
-            }
-        }
         
         /// <summary>
         /// アニメーションクリップを設定する
