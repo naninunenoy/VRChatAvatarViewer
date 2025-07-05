@@ -22,21 +22,6 @@ namespace com.naninunenoy.avatar_viewer.Editor
         float _distance = DefaultCameraDistance;
 
         /// <summary>
-        /// カメラの距離
-        /// </summary>
-        public float Distance => _distance;
-
-        /// <summary>
-        /// オービット回転角度
-        /// </summary>
-        public Vector2 OrbitRotation => _orbitRotation;
-
-        /// <summary>
-        /// パンオフセット
-        /// </summary>
-        public Vector3 PanOffset => _panOffset;
-
-        /// <summary>
         /// カメラの位置を計算
         /// </summary>
         /// <returns>カメラの位置</returns>
@@ -115,6 +100,23 @@ namespace com.naninunenoy.avatar_viewer.Editor
             _panOffset.y = 0.0F;
             _panOffset.z = 0.0F;
             _distance = DefaultCameraDistance;
+        }
+
+        // カメラ状態の保存・復元用プロパティ
+        public Vector2 OrbitRotation
+        {
+            get => _orbitRotation;
+            set => _orbitRotation = value;
+        }
+        public Vector3 PanOffset
+        {
+            get => _panOffset;
+            set => _panOffset = value;
+        }
+        public float Distance
+        {
+            get => _distance;
+            set => _distance = value;
         }
     }
 }

@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEditor;
 using UnityEngine;
 
@@ -6,6 +5,11 @@ namespace com.naninunenoy.avatar_viewer.Editor
 {
     public class AvatarViewerWindow : EditorWindow
     {
+        static GameObject s_lastPrefab;
+        static Vector2 s_lastCameraOrbit;
+        static Vector3 s_lastCameraPan;
+        static float s_lastCameraDistance;
+        
         AvatarPreviewCamera _camera;
         AvatarPreviewRenderer _renderer;
         
@@ -26,7 +30,16 @@ namespace com.naninunenoy.avatar_viewer.Editor
         {
             _camera ??= new AvatarPreviewCamera();
             _renderer ??= new AvatarPreviewRenderer();
-            _renderer?.Initialize();
+            _renderer.Initialize();
+            // 前回状態の復元
+            if (s_lastPrefab != null)
+            {
+                SetPrefab(s_lastPrefab);
+            }
+            // カメラ状態の復元
+            _camera.OrbitRotation = s_lastCameraOrbit;
+            _camera.PanOffset = s_lastCameraPan;
+            _camera.Distance = s_lastCameraDistance;
         }
 
         /// <summary>
@@ -44,6 +57,13 @@ namespace com.naninunenoy.avatar_viewer.Editor
         /// </summary>
         void OnDestroy()
         {
+            // カメラ状態をstaticに保存
+            if (_camera != null)
+            {
+                s_lastCameraOrbit = _camera.OrbitRotation;
+                s_lastCameraPan = _camera.PanOffset;
+                s_lastCameraDistance = _camera.Distance;
+            }
             _renderer?.Dispose();
         }
 
@@ -70,6 +90,7 @@ namespace com.naninunenoy.avatar_viewer.Editor
                             if (draggedObject is GameObject prefab)
                             {
                                 SetPrefab(prefab);
+                                s_lastPrefab = prefab;
                                 break;
                             }
                             else if (draggedObject is AnimationClip animationClip)
@@ -94,12 +115,14 @@ namespace com.naninunenoy.avatar_viewer.Editor
                 GUILayout.Label("プレビューするPrefabを選択してください", EditorStyles.centeredGreyMiniLabel);
                 return;
             }
-            
             var rect = GUILayoutUtility.GetRect(300.0F, 300.0F, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
-            
             var cameraPosition = _camera.CalculatePosition();
             var cameraRotation = _camera.CalculateRotation();
             _renderer.RenderPreview(rect, cameraPosition, cameraRotation);
+            // カメラ状態を保持
+            s_lastCameraOrbit = _camera.OrbitRotation;
+            s_lastCameraPan = _camera.PanOffset;
+            s_lastCameraDistance = _camera.Distance;
         }
 
         /// <summary>
