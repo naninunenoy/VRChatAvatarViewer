@@ -1,8 +1,7 @@
-using System;
 using UnityEditor;
 using UnityEngine;
 
-namespace com.naninunenoy.avatarviewer.Editor
+namespace com.naninunenoy.avatar_viewer.Editor
 {
     /// <summary>
     /// VRChatアバターを表示・操作するEditorWindow
@@ -10,10 +9,8 @@ namespace com.naninunenoy.avatarviewer.Editor
     public class AvatarViewerWindow : EditorWindow
     {
         private static PreviewRenderUtility s_previewRenderUtility;
-        private GameObject _currentPrefab;
         private GameObject _previewInstance;
-        private Vector3 _cameraTarget = Vector3.zero;
-        private Vector2 _cameraOrbitRotation = new Vector2(0.0F, 0.0F);
+        private Vector2 _cameraOrbitRotation = new (0.0F, 0.0F);
         private Vector3 _cameraPanOffset = Vector3.zero;
         private float _cameraDistance = 3.0F;
         private bool _isDraggingOrbit;
@@ -123,10 +120,15 @@ namespace com.naninunenoy.avatarviewer.Editor
             
             if (Event.current.type == EventType.Repaint)
             {
-                if (s_previewRenderUtility == null) return;
-                
-                UpdateCameraPosition();
-                RenderPreview(rect);
+                // カメラの位置と回転を設定
+                var rotation = Quaternion.Euler(_cameraOrbitRotation.x, _cameraOrbitRotation.y, 0.0F);
+                var cameraPosition = _cameraPanOffset + rotation * Vector3.back * _cameraDistance;
+                s_previewRenderUtility.camera.transform.position = cameraPosition;
+                s_previewRenderUtility.camera.transform.rotation = rotation;
+                // プレビューの描画
+                s_previewRenderUtility.BeginPreview(rect, GUIStyle.none);
+                s_previewRenderUtility.Render();
+                s_previewRenderUtility.EndAndDrawPreview(rect);
             }
         }
 
@@ -262,52 +264,6 @@ namespace com.naninunenoy.avatarviewer.Editor
         }
 
         /// <summary>
-        /// カメラの位置を更新
-        /// </summary>
-        void UpdateCameraPosition()
-        {
-            var rotation = Quaternion.Euler(_cameraOrbitRotation.x, _cameraOrbitRotation.y, 0.0F);
-            var targetPosition = _cameraTarget + _cameraPanOffset;
-            var cameraPosition = targetPosition + rotation * Vector3.back * _cameraDistance;
-            
-            s_previewRenderUtility.camera.transform.position = cameraPosition;
-            s_previewRenderUtility.camera.transform.rotation = rotation;
-        }
-
-        /// <summary>
-        /// プレビューのレンダリング
-        /// </summary>
-        /// <param name="rect">描画エリア</param>
-        void RenderPreview(Rect rect)
-        {
-            s_previewRenderUtility.BeginPreview(rect, GUIStyle.none);
-            s_previewRenderUtility.Render();
-            s_previewRenderUtility.EndAndDrawPreview(rect);
-        }
-
-        /// <summary>
-        /// GameObjectのバウンディングボックスを計算
-        /// </summary>
-        /// <param name="gameObject">計算対象のGameObject</param>
-        /// <returns>バウンディングボックス</returns>
-        Bounds CalculateBounds(GameObject gameObject)
-        {
-            var bounds = new Bounds();
-            var renderers = gameObject.GetComponentsInChildren<Renderer>();
-            
-            if (renderers.Length == 0)
-                return bounds;
-            
-            bounds = renderers[0].bounds;
-            for (int i = 1; i < renderers.Length; i++)
-            {
-                bounds.Encapsulate(renderers[i].bounds);
-            }
-            
-            return bounds;
-        }
-
-        /// <summary>
         /// Prefabを設定する
         /// </summary>
         /// <param name="prefab">設定するPrefab</param>
@@ -318,7 +274,6 @@ namespace com.naninunenoy.avatarviewer.Editor
                 DestroyImmediate(_previewInstance);
             }
                 
-            _currentPrefab = prefab;
             _previewInstance = Instantiate(prefab);
             _previewInstance.hideFlags = HideFlags.HideAndDontSave;
                 
@@ -333,6 +288,28 @@ namespace com.naninunenoy.avatarviewer.Editor
             }
                 
             Repaint();
+        }
+        
+        /// <summary>
+        /// GameObjectのバウンディングボックスを計算
+        /// </summary>
+        /// <param name="gameObject">計算対象のGameObject</param>
+        /// <returns>バウンディングボックス</returns>
+        static Bounds CalculateBounds(GameObject gameObject)
+        {
+            var bounds = new Bounds();
+            var renderers = gameObject.GetComponentsInChildren<Renderer>();
+            
+            if (renderers.Length == 0)
+                return bounds;
+            
+            bounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+            {
+                bounds.Encapsulate(renderers[i].bounds);
+            }
+            
+            return bounds;
         }
     }
 }
