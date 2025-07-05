@@ -75,17 +75,12 @@ namespace com.naninunenoy.avatar_viewer.Editor
         void HandleDragAndDrop()
         {
             var evt = Event.current;
-            var dropArea = GUILayoutUtility.GetRect(0.0F, 50.0F, GUILayout.ExpandWidth(true));
-
-            GUI.Box(dropArea, "Prefabをここにドラッグ&ドロップしてください");
             
             switch (evt.type)
             {
                 case EventType.DragUpdated:
                 case EventType.DragPerform:
-                    if (!dropArea.Contains(evt.mousePosition))
-                        return;
-                    
+                    // 画面全体でドラッグ&ドロップを受け付ける
                     DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
                     
                     if (evt.type == EventType.DragPerform)
@@ -101,6 +96,7 @@ namespace com.naninunenoy.avatar_viewer.Editor
                             }
                         }
                     }
+                    evt.Use();
                     break;
             }
         }
