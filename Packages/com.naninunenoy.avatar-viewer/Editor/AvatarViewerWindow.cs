@@ -27,6 +27,10 @@ namespace com.naninunenoy.avatar_viewer.Editor
             _camera ??= new AvatarPreviewCamera();
             _renderer ??= new AvatarPreviewRenderer();
             _renderer?.Initialize();
+            
+            // アニメーション更新のためのUpdateイベント登録
+            EditorApplication.update -= OnEditorUpdate; // 重複登録を避ける
+            EditorApplication.update += OnEditorUpdate;
         }
 
         /// <summary>
@@ -43,6 +47,15 @@ namespace com.naninunenoy.avatar_viewer.Editor
         /// ウィンドウが閉じられる際の処理
         /// </summary>
         void OnDisable()
+        {
+            // Updateイベントの登録解除
+            EditorApplication.update -= OnEditorUpdate;
+        }
+        
+        /// <summary>
+        /// ウィンドウが破棄される際の処理
+        /// </summary>
+        void OnDestroy()
         {
             _renderer?.Dispose();
         }
@@ -70,6 +83,11 @@ namespace com.naninunenoy.avatar_viewer.Editor
                             if (draggedObject is GameObject prefab)
                             {
                                 SetPrefab(prefab);
+                                break;
+                            }
+                            else if (draggedObject is AnimationClip animationClip)
+                            {
+                                SetAnimationClip(animationClip);
                                 break;
                             }
                         }
@@ -221,6 +239,34 @@ namespace com.naninunenoy.avatar_viewer.Editor
             var bounds = _renderer.CalculateBounds();
             _camera.AdjustDistanceForBounds(bounds);
                 
+            Repaint();
+        }
+        
+        /// <summary>
+        /// EditorのUpdate処理
+        /// </summary>
+        void OnEditorUpdate()
+        {
+            // アニメーションが再生中の場合は再描画
+            if (_renderer?.AnimationController != null && _renderer.AnimationController.IsPlaying)
+            {
+                Repaint();
+            }
+        }
+        
+        /// <summary>
+        /// アニメーションクリップを設定する
+        /// </summary>
+        /// <param name="clip">アニメーションクリップ</param>
+        void SetAnimationClip(AnimationClip clip)
+        {
+            if (_renderer == null || _renderer.CurrentInstance == null)
+            {
+                Debug.LogWarning("アニメーションを適用するためには、まずPrefabを設定してください。");
+                return;
+            }
+            
+            _renderer.SetAnimationClip(clip);
             Repaint();
         }
     }

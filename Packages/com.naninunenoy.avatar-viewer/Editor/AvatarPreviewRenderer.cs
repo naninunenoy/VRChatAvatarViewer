@@ -21,6 +21,7 @@ namespace com.naninunenoy.avatar_viewer.Editor
 
         PreviewRenderUtility _previewRenderUtility;
         GameObject _currentInstance;
+        AvatarAnimationController _animationController;
 
         /// <summary>
         /// レンダリング用カメラ
@@ -33,6 +34,11 @@ namespace com.naninunenoy.avatar_viewer.Editor
         public GameObject CurrentInstance => _currentInstance;
 
         /// <summary>
+        /// アニメーション制御クラス
+        /// </summary>
+        public AvatarAnimationController AnimationController => _animationController;
+
+        /// <summary>
         /// コンストラクタ
         /// </summary>
         public void Initialize()
@@ -40,6 +46,7 @@ namespace com.naninunenoy.avatar_viewer.Editor
             _previewRenderUtility = new PreviewRenderUtility(true, true);
             SetupCamera();
             SetupLights();
+            _animationController = new AvatarAnimationController();
         }
 
         /// <summary>
@@ -51,6 +58,7 @@ namespace com.naninunenoy.avatar_viewer.Editor
             {
                 UnityEngine.Object.DestroyImmediate(_currentInstance);
             }
+            _animationController?.Dispose();
             _previewRenderUtility?.Cleanup();
         }
 
@@ -65,6 +73,11 @@ namespace com.naninunenoy.avatar_viewer.Editor
             UpdateCameraTransform(cameraPosition, cameraRotation);
             
             _previewRenderUtility.BeginPreview(rect, GUIStyle.none);
+            
+            // 階層的な更新順序
+            _animationController?.UpdatePlayableGraph();
+            _animationController?.UpdateAnimationClipPlayable();
+            
             _previewRenderUtility.Render();
             _previewRenderUtility.EndAndDrawPreview(rect);
         }
@@ -79,6 +92,9 @@ namespace com.naninunenoy.avatar_viewer.Editor
             
             _currentInstance = UnityEngine.Object.Instantiate(prefab);
             _currentInstance.hideFlags = HideFlags.HideAndDontSave;
+            
+            // アニメーション制御を初期化
+            _animationController?.Initialize(_currentInstance);
             
             _previewRenderUtility.AddSingleGO(_currentInstance);
         }
@@ -130,6 +146,24 @@ namespace com.naninunenoy.avatar_viewer.Editor
             _previewRenderUtility.camera.transform.position = position;
             _previewRenderUtility.camera.transform.rotation = rotation;
         }
+
+        /// <summary>
+        /// アニメーションクリップを設定して再生
+        /// </summary>
+        /// <param name="clip">アニメーションクリップ</param>
+        public void SetAnimationClip(AnimationClip clip)
+        {
+            _animationController?.PlayClip(clip);
+        }
+
+        /// <summary>
+        /// アニメーションを停止
+        /// </summary>
+        public void StopAnimation()
+        {
+            _animationController?.Stop();
+        }
+        
 
         /// <summary>
         /// 現在のインスタンスをクリア
