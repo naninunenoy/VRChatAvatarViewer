@@ -112,18 +112,19 @@ namespace com.naninunenoy.avatar_viewer.Editor
             // Playableを作り直し
             _clipPlayable = AnimationClipPlayable.Create(_playableGraph, _currentClip);
             
-            // 正しい方法：クリップの実際の長さを設定
+            // クリップの実際の長さを設定
             _clipPlayable.SetDuration(_currentClip.length);
             
-            // ループ再生のためのWrapMode設定
-            if (!_currentClip.isLooping)
-            {
-                // 一時的にループモードを有効にする
-                _currentClip.wrapMode = WrapMode.Loop;
-            }
-            
+            // 手動ループのための初期設定
             _clipPlayable.SetTime(0.0);
             _clipPlayable.SetSpeed(1.0);
+            
+            // Humanoidの場合、IK設定を有効化
+            if (_animator.isHuman)
+            {
+                _clipPlayable.SetApplyFootIK(false);
+                _clipPlayable.SetApplyPlayableIK(false);
+            }
             
             // Outputに接続
             _output.SetSourcePlayable(_clipPlayable);
