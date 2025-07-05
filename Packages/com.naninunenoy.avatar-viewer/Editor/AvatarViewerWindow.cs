@@ -56,6 +56,12 @@ namespace com.naninunenoy.avatar_viewer.Editor
             HandleDragAndDrop();
             DrawPreview();
             HandleMouseInput();
+            
+            // アニメーション再生中は継続的に更新
+            if (_renderer?.CurrentInstance != null && _selectedAnimationClip != null)
+            {
+                Repaint();
+            }
         }
         
         /// <summary>
