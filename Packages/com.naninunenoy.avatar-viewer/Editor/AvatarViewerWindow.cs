@@ -242,6 +242,23 @@ namespace com.naninunenoy.avatar_viewer.Editor
                 return;
                 
             _renderer.SetGameObject(prefab);
+            var animator = _renderer.Animator;
+            if (animator != null)
+            {
+                var headBone = animator.GetBoneTransform(HumanBodyBones.Head);
+                if (headBone != null)
+                {
+                    // 顔の位置を注視点として設定
+                    _camera.PanOffset = headBone.position;
+                    _camera.Distance = 3.0F;
+                    
+                    // Prefabの正面（Z軸正方向）からの視点を設定
+                    // Y軸回転をPrefabの向きに合わせて設定
+                    var prefabForward = prefab.transform.forward;
+                    var yRotation = Mathf.Atan2(prefabForward.x, prefabForward.z) * Mathf.Rad2Deg;
+                    _camera.OrbitRotation = new Vector2(0.0F, yRotation + 180.0F);
+                }
+            }
             
             var bounds = _renderer.CalculateBounds();
             _camera.AdjustDistanceForBounds(bounds);

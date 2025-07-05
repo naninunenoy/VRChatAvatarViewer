@@ -30,18 +30,10 @@ namespace com.naninunenoy.avatar_viewer.Editor
         /// <summary>
         /// アニメーション制御の初期化
         /// </summary>
-        /// <param name="gameObject">対象GameObject</param>
-        public void Initialize(GameObject gameObject)
+        /// <param name="animator">対象animator</param>
+        public void Initialize(Animator animator)
         {
-            if (gameObject == null)
-                return;
-
-            _animator = gameObject.GetComponent<Animator>();
-            if (_animator == null)
-            {
-                _animator = gameObject.AddComponent<Animator>();
-            }
-            
+            _animator = animator;
             _animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
         }
 

@@ -36,7 +36,7 @@ namespace com.naninunenoy.avatar_viewer.Editor
         /// <summary>
         /// アニメーション制御クラス
         /// </summary>
-        public AvatarAnimationController AnimationController => _animationController;
+        public Animator Animator => _animationController.Animator;
 
         /// <summary>
         /// コンストラクタ
@@ -75,8 +75,8 @@ namespace com.naninunenoy.avatar_viewer.Editor
             _previewRenderUtility.BeginPreview(rect, GUIStyle.none);
             
             // 階層的な更新順序
-            _animationController?.UpdatePlayableGraph();
-            _animationController?.UpdateAnimationClipPlayable();
+            _animationController.UpdatePlayableGraph();
+            _animationController.UpdateAnimationClipPlayable();
             
             _previewRenderUtility.Render();
             _previewRenderUtility.EndAndDrawPreview(rect);
@@ -94,7 +94,11 @@ namespace com.naninunenoy.avatar_viewer.Editor
             _currentInstance.hideFlags = HideFlags.HideAndDontSave;
             
             // アニメーション制御を初期化
-            _animationController?.Initialize(_currentInstance);
+            var animator = _currentInstance.GetComponent<Animator>();
+            if (animator != null)
+            {
+                _animationController?.Initialize(animator);
+            }
             
             _previewRenderUtility.AddSingleGO(_currentInstance);
         }
