@@ -77,6 +77,7 @@ namespace com.naninunenoy.avatar_viewer.Editor
             // 階層的な更新順序
             _animationController.UpdatePlayableGraph();
             _animationController.UpdateAnimationClipPlayable();
+            _animationController.UpdateAnimation();
             
             _previewRenderUtility.Render();
             _previewRenderUtility.EndAndDrawPreview(rect);
