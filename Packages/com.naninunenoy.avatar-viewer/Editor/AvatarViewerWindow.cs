@@ -19,7 +19,8 @@ namespace com.naninunenoy.avatar_viewer.Editor
         
         // UI用のフィールド
         GameObject _selectedPrefab;
-        AnimationClip _selectedAnimationClip;
+        AnimationClip _selectedBodyAnimationClip;
+        AnimationClip _selectedFaceAnimationClip;
         
         [MenuItem("Window/AvatarViewer")]
         public static void Open()
@@ -58,7 +59,7 @@ namespace com.naninunenoy.avatar_viewer.Editor
             HandleMouseInput();
             
             // アニメーション再生中は継続的に更新
-            if (_renderer?.CurrentInstance != null && _selectedAnimationClip != null)
+            if (_renderer?.CurrentInstance != null && (_selectedBodyAnimationClip != null || _selectedFaceAnimationClip != null))
             {
                 Repaint();
             }
@@ -89,26 +90,32 @@ namespace com.naninunenoy.avatar_viewer.Editor
                 }
             }
             
-            // AnimationClip選択
+            // 全身AnimationClip選択
             EditorGUI.BeginChangeCheck();
-            var newAnimationClip = (AnimationClip)EditorGUILayout.ObjectField(
-                "Animation Clip", 
-                _selectedAnimationClip, 
+            var newBodyAnimationClip = (AnimationClip)EditorGUILayout.ObjectField(
+                "Body Animation", 
+                _selectedBodyAnimationClip, 
                 typeof(AnimationClip), 
                 false
             );
-            if (EditorGUI.EndChangeCheck() && newAnimationClip != _selectedAnimationClip)
+            if (EditorGUI.EndChangeCheck() && newBodyAnimationClip != _selectedBodyAnimationClip)
             {
-                _selectedAnimationClip = newAnimationClip;
-                if (newAnimationClip != null)
-                {
-                    SetAnimationClip(newAnimationClip);
-                }
-                else
-                {
-                    // アニメーションクリップがnullの場合、アニメーションを停止
-                    _renderer?.StopAnimation();
-                }
+                _selectedBodyAnimationClip = newBodyAnimationClip;
+                SetBodyAnimationClip(newBodyAnimationClip);
+            }
+            
+            // 顔AnimationClip選択
+            EditorGUI.BeginChangeCheck();
+            var newFaceAnimationClip = (AnimationClip)EditorGUILayout.ObjectField(
+                "Face Animation", 
+                _selectedFaceAnimationClip, 
+                typeof(AnimationClip), 
+                false
+            );
+            if (EditorGUI.EndChangeCheck() && newFaceAnimationClip != _selectedFaceAnimationClip)
+            {
+                _selectedFaceAnimationClip = newFaceAnimationClip;
+                SetFaceAnimationClip(newFaceAnimationClip);
             }
             
             EditorGUILayout.EndVertical();
@@ -158,8 +165,9 @@ namespace com.naninunenoy.avatar_viewer.Editor
                             }
                             else if (draggedObject is AnimationClip animationClip)
                             {
-                                _selectedAnimationClip = animationClip;
-                                SetAnimationClip(animationClip);
+                                // ドラッグしたアニメーションクリップを全身アニメーションとして設定
+                                _selectedBodyAnimationClip = animationClip;
+                                SetBodyAnimationClip(animationClip);
                                 break;
                             }
                         }
@@ -332,10 +340,10 @@ namespace com.naninunenoy.avatar_viewer.Editor
         
         
         /// <summary>
-        /// アニメーションクリップを設定する
+        /// 全身アニメーションクリップを設定する
         /// </summary>
         /// <param name="clip">アニメーションクリップ</param>
-        void SetAnimationClip(AnimationClip clip)
+        void SetBodyAnimationClip(AnimationClip clip)
         {
             if (_renderer == null || _renderer.CurrentInstance == null)
             {
@@ -343,7 +351,23 @@ namespace com.naninunenoy.avatar_viewer.Editor
                 return;
             }
             
-            _renderer.SetAnimationClip(clip);
+            _renderer.SetBodyAnimationClip(clip);
+            Repaint();
+        }
+        
+        /// <summary>
+        /// 顔アニメーションクリップを設定する
+        /// </summary>
+        /// <param name="clip">アニメーションクリップ</param>
+        void SetFaceAnimationClip(AnimationClip clip)
+        {
+            if (_renderer == null || _renderer.CurrentInstance == null)
+            {
+                Debug.LogWarning("アニメーションを適用するためには、まずPrefabを設定してください。");
+                return;
+            }
+            
+            _renderer.SetFaceAnimationClip(clip);
             Repaint();
         }
     }

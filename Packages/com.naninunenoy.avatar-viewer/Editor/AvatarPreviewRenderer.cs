@@ -153,12 +153,30 @@ namespace com.naninunenoy.avatar_viewer.Editor
         }
 
         /// <summary>
-        /// アニメーションクリップを設定して再生
+        /// 全身アニメーションクリップを設定して再生
+        /// </summary>
+        /// <param name="clip">アニメーションクリップ</param>
+        public void SetBodyAnimationClip(AnimationClip clip)
+        {
+            _animationController?.PlayBodyClip(clip);
+        }
+        
+        /// <summary>
+        /// 顔アニメーションクリップを設定して再生
+        /// </summary>
+        /// <param name="clip">アニメーションクリップ</param>
+        public void SetFaceAnimationClip(AnimationClip clip)
+        {
+            _animationController?.PlayFaceClip(clip);
+        }
+        
+        /// <summary>
+        /// アニメーションクリップを設定して再生（後方互換性のため保持）
         /// </summary>
         /// <param name="clip">アニメーションクリップ</param>
         public void SetAnimationClip(AnimationClip clip)
         {
-            _animationController?.PlayClip(clip);
+            _animationController?.PlayBodyClip(clip);
         }
 
         /// <summary>
