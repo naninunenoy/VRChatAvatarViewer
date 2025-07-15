@@ -22,6 +22,7 @@ namespace com.naninunenoy.avatar_viewer.Editor
         PreviewRenderUtility _previewRenderUtility;
         GameObject _currentInstance;
         AvatarAnimationController _animationController;
+        VRCPhysBoneManager _physBoneManager;
 
         /// <summary>
         /// レンダリング用カメラ
@@ -39,6 +40,11 @@ namespace com.naninunenoy.avatar_viewer.Editor
         public Animator Animator => _animationController.Animator;
 
         /// <summary>
+        /// PhysBone管理クラス
+        /// </summary>
+        public VRCPhysBoneManager PhysBoneManager => _physBoneManager;
+
+        /// <summary>
         /// コンストラクタ
         /// </summary>
         public void Initialize()
@@ -47,6 +53,7 @@ namespace com.naninunenoy.avatar_viewer.Editor
             SetupCamera();
             SetupLights();
             _animationController = new AvatarAnimationController();
+            _physBoneManager = new VRCPhysBoneManager();
         }
 
         /// <summary>
@@ -59,6 +66,7 @@ namespace com.naninunenoy.avatar_viewer.Editor
                 UnityEngine.Object.DestroyImmediate(_currentInstance);
             }
             _animationController?.Dispose();
+            _physBoneManager?.Dispose();
             _previewRenderUtility?.Cleanup();
         }
 
@@ -78,6 +86,8 @@ namespace com.naninunenoy.avatar_viewer.Editor
             _animationController.UpdatePlayableGraph();
             _animationController.UpdateAnimationClipPlayable();
             _animationController.UpdateAnimation();
+            
+            // PhysBoneの物理シミュレーション更新はPhysBoneSimulationLoopで自動実行される
             
             _previewRenderUtility.Render();
             _previewRenderUtility.EndAndDrawPreview(rect);
@@ -100,6 +110,9 @@ namespace com.naninunenoy.avatar_viewer.Editor
             {
                 _animationController?.Initialize(animator);
             }
+            
+            // PhysBone管理を初期化
+            _physBoneManager?.Initialize(_currentInstance);
             
             _previewRenderUtility.AddSingleGO(_currentInstance);
         }
@@ -185,6 +198,14 @@ namespace com.naninunenoy.avatar_viewer.Editor
         public void StopAnimation()
         {
             _animationController?.Stop();
+        }
+
+        /// <summary>
+        /// PhysBoneの物理状態をリセット
+        /// </summary>
+        public void ResetPhysBone()
+        {
+            _physBoneManager?.ResetPhysics();
         }
         
 

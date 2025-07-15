@@ -149,6 +149,9 @@ namespace com.naninunenoy.avatar_viewer.Editor
                 }
             }
             
+            // PhysBone制御UI
+            DrawPhysBoneUI();
+            
             EditorGUILayout.EndVertical();
         }
         
@@ -502,6 +505,50 @@ namespace com.naninunenoy.avatar_viewer.Editor
                          $"(Parameter: {selectedClassifiedClip.ParameterName})");
             }
             // "Custom..."が選択された場合は、ObjectFieldで手動選択させる
+        }
+
+        /// <summary>
+        /// PhysBone制御UIの描画
+        /// </summary>
+        void DrawPhysBoneUI()
+        {
+            if (_renderer?.PhysBoneManager == null)
+                return;
+
+            var physBoneManager = _renderer.PhysBoneManager;
+            
+            EditorGUILayout.BeginVertical("box");
+            EditorGUILayout.LabelField("PhysBone Settings", EditorStyles.boldLabel);
+            
+            // PhysBone情報表示
+            EditorGUILayout.LabelField($"PhysBone Count: {physBoneManager.PhysBoneCount}");
+            
+            // PhysBone有効/無効切り替え
+            EditorGUI.BeginChangeCheck();
+            bool isEnabled = EditorGUILayout.Toggle("Enable PhysBone", physBoneManager.IsEnabled);
+            if (EditorGUI.EndChangeCheck())
+            {
+                physBoneManager.IsEnabled = isEnabled;
+            }
+            
+            // デルタタイム調整
+            if (physBoneManager.IsEnabled)
+            {
+                EditorGUI.BeginChangeCheck();
+                float deltaTime = EditorGUILayout.Slider("Simulation Speed", physBoneManager.DeltaTime * 60.0f, 1.0f, 120.0f);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    physBoneManager.DeltaTime = deltaTime / 60.0f;
+                }
+                
+                // リセットボタン
+                if (GUILayout.Button("Reset PhysBone"))
+                {
+                    _renderer.ResetPhysBone();
+                }
+            }
+            
+            EditorGUILayout.EndVertical();
         }
     }
 }

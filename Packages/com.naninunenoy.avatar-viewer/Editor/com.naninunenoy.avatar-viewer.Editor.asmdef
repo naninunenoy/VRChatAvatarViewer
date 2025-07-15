@@ -14,7 +14,9 @@
     "overrideReferences": true,
     "precompiledReferences": [
         "VRCSDKBase.dll",
-        "VRCSDK3A.dll"
+        "VRCSDK3A.dll",
+        "VRC.SDK3.Dynamics.PhysBone.dll",
+        "VRC.Dynamics.dll"
     ],
     "autoReferenced": true,
     "defineConstraints": [],
