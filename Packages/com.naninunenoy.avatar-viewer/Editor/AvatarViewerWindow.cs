@@ -1,5 +1,8 @@
 using UnityEditor;
 using UnityEngine;
+using System.Collections.Generic;
+using System.Linq;
+using static com.naninunenoy.avatar_viewer.Editor.VRChatExpressionExtractor;
 
 namespace com.naninunenoy.avatar_viewer.Editor
 {
@@ -21,6 +24,12 @@ namespace com.naninunenoy.avatar_viewer.Editor
         GameObject _selectedPrefab;
         AnimationClip _selectedBodyAnimationClip;
         AnimationClip _selectedFaceAnimationClip;
+        
+        // VRChat表情クリップ管理
+        List<AnimationClip> _availableFaceClips = new List<AnimationClip>();
+        List<ClassifiedAnimationClip> _classifiedClips = new List<ClassifiedAnimationClip>();
+        string[] _faceClipNames = new string[0];
+        int _selectedFaceClipIndex = 0;
         
         [MenuItem("Window/AvatarViewer")]
         public static void Open()
@@ -104,18 +113,40 @@ namespace com.naninunenoy.avatar_viewer.Editor
                 SetBodyAnimationClip(newBodyAnimationClip);
             }
             
-            // 顔AnimationClip選択
+            // 顔AnimationClip選択（ドロップダウン形式）
+            EditorGUILayout.BeginHorizontal();
+            
             EditorGUI.BeginChangeCheck();
-            var newFaceAnimationClip = (AnimationClip)EditorGUILayout.ObjectField(
-                "Face Animation", 
-                _selectedFaceAnimationClip, 
-                typeof(AnimationClip), 
-                false
-            );
-            if (EditorGUI.EndChangeCheck() && newFaceAnimationClip != _selectedFaceAnimationClip)
+            int newFaceClipIndex = EditorGUILayout.Popup("Face Animation", _selectedFaceClipIndex, _faceClipNames);
+            if (EditorGUI.EndChangeCheck() && newFaceClipIndex != _selectedFaceClipIndex)
             {
-                _selectedFaceAnimationClip = newFaceAnimationClip;
-                SetFaceAnimationClip(newFaceAnimationClip);
+                _selectedFaceClipIndex = newFaceClipIndex;
+                UpdateSelectedFaceClip();
+            }
+            
+            // VRChat表情クリップ更新ボタン
+            if (GUILayout.Button("Update", GUILayout.Width(60.0F)))
+            {
+                UpdateFaceClipsFromVRChat();
+            }
+            
+            EditorGUILayout.EndHorizontal();
+            
+            // 手動選択用ObjectField（Custom選択時のみ表示）
+            if (_selectedFaceClipIndex > 0 && _selectedFaceClipIndex == _faceClipNames.Length - 1) // "Custom..."が選択された場合
+            {
+                EditorGUI.BeginChangeCheck();
+                var customClip = (AnimationClip)EditorGUILayout.ObjectField(
+                    "Custom Face Clip", 
+                    _selectedFaceAnimationClip, 
+                    typeof(AnimationClip), 
+                    false
+                );
+                if (EditorGUI.EndChangeCheck())
+                {
+                    _selectedFaceAnimationClip = customClip;
+                    SetFaceAnimationClip(customClip);
+                }
             }
             
             EditorGUILayout.EndVertical();
@@ -334,6 +365,9 @@ namespace com.naninunenoy.avatar_viewer.Editor
             
             var bounds = _renderer.CalculateBounds();
             _camera.AdjustDistanceForBounds(bounds);
+            
+            // VRChat表情クリップを更新
+            UpdateFaceClipsFromVRChat();
                 
             Repaint();
         }
@@ -369,6 +403,105 @@ namespace com.naninunenoy.avatar_viewer.Editor
             
             _renderer.SetFaceAnimationClip(clip);
             Repaint();
+        }
+        
+        /// <summary>
+        /// VRChat表情システムから顔アニメーションクリップを更新
+        /// </summary>
+        void UpdateFaceClipsFromVRChat()
+        {
+            if (_renderer?.CurrentInstance == null)
+            {
+                _availableFaceClips.Clear();
+                _faceClipNames = new[] { "None" };
+                _selectedFaceClipIndex = 0;
+                return;
+            }
+            
+            try
+            {
+                // 分類されたAnimationClipを取得
+                _classifiedClips = VRChatExpressionExtractor.GetClassifiedAnimationClips(_renderer.CurrentInstance);
+                _availableFaceClips = _classifiedClips.Select(c => c.Clip).Distinct().ToList();
+                
+                // ドロップダウン用の名前配列を作成（分類情報付き）
+                var names = new List<string> { "None" };
+                
+                // 分類別にソート
+                var sortedClips = _classifiedClips
+                    .GroupBy(c => c.ControlType)
+                    .OrderBy(g => g.Key.ToString())
+                    .SelectMany(g => g.OrderBy(c => c.MenuPath).ThenBy(c => c.Clip.name));
+                
+                foreach (var classifiedClip in sortedClips)
+                {
+                    var displayName = $"[{classifiedClip.ControlType}] {classifiedClip.MenuPath}/{classifiedClip.Clip.name}";
+                    names.Add(displayName);
+                }
+                
+                names.Add("Custom...");
+                _faceClipNames = names.ToArray();
+                
+                // 現在選択中のクリップがリストにあるかチェック
+                if (_selectedFaceAnimationClip != null)
+                {
+                    int clipIndex = _availableFaceClips.IndexOf(_selectedFaceAnimationClip);
+                    if (clipIndex >= 0)
+                    {
+                        _selectedFaceClipIndex = clipIndex + 1; // "None"を考慮して+1
+                    }
+                    else
+                    {
+                        _selectedFaceClipIndex = _faceClipNames.Length - 1; // "Custom..."を選択
+                    }
+                }
+                else
+                {
+                    _selectedFaceClipIndex = 0; // "None"を選択
+                }
+                
+                Debug.Log($"Found {_classifiedClips.Count} classified animation clips from VRChat expressions.");
+                
+                // 分類情報をデバッグ出力
+                foreach (var group in _classifiedClips.GroupBy(c => c.ControlType))
+                {
+                    Debug.Log($"Control Type [{group.Key}]: {group.Count()} clips");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"Failed to extract VRChat face animations: {ex.Message}");
+                _availableFaceClips.Clear();
+                _faceClipNames = new[] { "None", "Custom..." };
+                _selectedFaceClipIndex = 0;
+            }
+        }
+        
+        /// <summary>
+        /// 選択された顔アニメーションクリップを更新
+        /// </summary>
+        void UpdateSelectedFaceClip()
+        {
+            if (_selectedFaceClipIndex == 0)
+            {
+                // "None"が選択された場合
+                _selectedFaceAnimationClip = null;
+                SetFaceAnimationClip(null);
+            }
+            else if (_selectedFaceClipIndex > 0 && _selectedFaceClipIndex <= _classifiedClips.Count)
+            {
+                // VRChatから取得したクリップが選択された場合
+                var selectedClassifiedClip = _classifiedClips[_selectedFaceClipIndex - 1];
+                _selectedFaceAnimationClip = selectedClassifiedClip.Clip;
+                SetFaceAnimationClip(selectedClassifiedClip.Clip);
+                
+                // 分類情報もデバッグ出力
+                Debug.Log($"Selected clip: {selectedClassifiedClip.Clip.name} " +
+                         $"[{selectedClassifiedClip.ControlType}] " +
+                         $"from {selectedClassifiedClip.MenuPath} " +
+                         $"(Parameter: {selectedClassifiedClip.ParameterName})");
+            }
+            // "Custom..."が選択された場合は、ObjectFieldで手動選択させる
         }
     }
 }
